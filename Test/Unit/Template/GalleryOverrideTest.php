@@ -129,42 +129,40 @@ class GalleryOverrideTest extends TestCase
         );
     }
 
-    public function testItDeclaresCloudflareCustomerCodeAsAConstOutsideTheInitGalleryFunctionSoItIsClosedOverByMethodsInside(): void
+    public function testItDoesNotEmitTheCustomerCodeAsAJsConstOrCallGetCustomerCode(): void
     {
-        // cloudflareCustomerCode must appear BEFORE function initGallery
-        $constPos = strpos($this->content, 'const cloudflareCustomerCode');
-        $functionPos = strpos($this->content, 'function initGallery');
-
-        $this->assertNotFalse(
-            $constPos,
-            'cloudflareCustomerCode must be declared as a const'
-        );
-        $this->assertNotFalse(
-            $functionPos,
-            'function initGallery must exist in the template'
-        );
-        $this->assertLessThan(
-            $functionPos,
-            $constPos,
-            'cloudflareCustomerCode const must be declared before function initGallery so it is closed over'
-        );
-    }
-
-    public function testItEscapesTheCustomerCodeViaEscaperEscapeJs(): void
-    {
-        $this->assertStringContainsString(
-            '$escaper->escapeJs($cloudflareVideo->getCustomerCode())',
+        $this->assertStringNotContainsString(
+            'cloudflareCustomerCode',
             $this->content,
-            'The customer code must be escaped via $escaper->escapeJs()'
+            'The template must not declare a cloudflareCustomerCode const; the customer subdomain is derived from the per-slide URL'
+        );
+        $this->assertStringNotContainsString(
+            'getCustomerCode',
+            $this->content,
+            'The template must not call $cloudflareVideo->getCustomerCode(); the method no longer exists'
         );
     }
 
-    public function testItFallsBackToIframeVideodeliveryNetWhenCloudflareCustomerCodeIsEmptyMirrorsEmbedUrlBuilder(): void
+    public function testItDerivesTheCustomerSubdomainFromThePerSlideUrlInsideInitCloudflareVideo(): void
+    {
+        $this->assertMatchesRegularExpression(
+            '/customer-\[\^\.\\\\\/\]\+\\\\\.cloudflarestream\\\\\.com/',
+            $this->content,
+            'initCloudflareVideo must regex-match the customer subdomain from the per-slide videoUrl'
+        );
+        $this->assertStringContainsString(
+            '.videoUrl',
+            $this->content,
+            'initCloudflareVideo must read the per-slide videoUrl'
+        );
+    }
+
+    public function testItFallsBackToIframeVideodeliveryNetWhenTheUrlIsNotACustomerSubdomain(): void
     {
         $this->assertStringContainsString(
             'iframe.videodelivery.net',
             $this->content,
-            'The template must fall back to iframe.videodelivery.net when cloudflareCustomerCode is empty'
+            'The template must fall back to iframe.videodelivery.net for non-customer URLs'
         );
     }
 

@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Develo\CloudflareVideo\ViewModel;
 
-use Develo\CloudflareVideo\Model\Config;
 use Develo\CloudflareVideo\Model\EmbedUrlBuilder;
 use Develo\CloudflareVideo\Model\UidExtractor;
 use Magento\Framework\DataObject;
@@ -16,12 +15,10 @@ use Magento\Framework\View\Element\Block\ArgumentInterface;
 class CloudflareVideo implements ArgumentInterface
 {
     /**
-     * @param Config $config
      * @param UidExtractor $uidExtractor
      * @param EmbedUrlBuilder $embedUrlBuilder
      */
     public function __construct(
-        private readonly Config $config,
         private readonly UidExtractor $uidExtractor,
         private readonly EmbedUrlBuilder $embedUrlBuilder
     ) {
@@ -69,19 +66,9 @@ class CloudflareVideo implements ArgumentInterface
             return null;
         }
 
-        $uid = $this->uidExtractor->extract($item->getData('video_url'));
+        $videoUrl = (string) $item->getData('video_url');
         $posterUrl = $item->getData('medium_image_url');
 
-        return $this->embedUrlBuilder->build((string) $uid, $posterUrl ?: null);
-    }
-
-    /**
-     * Returns the Cloudflare Stream customer code from config.
-     *
-     * @return string
-     */
-    public function getCustomerCode(): string
-    {
-        return $this->config->getCustomerCode();
+        return $this->embedUrlBuilder->build($videoUrl, $posterUrl ?: null);
     }
 }

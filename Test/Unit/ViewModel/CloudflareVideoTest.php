@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Develo\CloudflareVideo\Test\Unit\ViewModel;
 
-use Develo\CloudflareVideo\Model\Config;
 use Develo\CloudflareVideo\Model\EmbedUrlBuilder;
 use Develo\CloudflareVideo\Model\UidExtractor;
 use Develo\CloudflareVideo\ViewModel\CloudflareVideo;
@@ -23,11 +22,6 @@ class CloudflareVideoTest extends TestCase
     private const EMBED_URL = 'https://customer-abc.cloudflarestream.com/abcdef1234567890abcdef1234567890/iframe';
 
     /**
-     * @var Config&MockObject
-     */
-    private Config $config;
-
-    /**
      * @var UidExtractor&MockObject
      */
     private UidExtractor $uidExtractor;
@@ -37,27 +31,19 @@ class CloudflareVideoTest extends TestCase
      */
     private EmbedUrlBuilder $embedUrlBuilder;
 
-    /**
-     * @var CloudflareVideo
-     */
     private CloudflareVideo $viewModel;
 
     protected function setUp(): void
     {
-        $this->config = $this->createMock(Config::class);
         $this->uidExtractor = $this->createMock(UidExtractor::class);
         $this->embedUrlBuilder = $this->createMock(EmbedUrlBuilder::class);
 
         $this->viewModel = new CloudflareVideo(
-            $this->config,
             $this->uidExtractor,
             $this->embedUrlBuilder
         );
     }
 
-    /**
-     * Creates a DataObject gallery item simulating an external video.
-     */
     private function makeExternalVideoItem(string $videoUrl): DataObject
     {
         return new DataObject([
@@ -66,9 +52,6 @@ class CloudflareVideoTest extends TestCase
         ]);
     }
 
-    /**
-     * Creates a DataObject gallery item simulating a plain image.
-     */
     private function makeImageItem(): DataObject
     {
         return new DataObject([
@@ -85,9 +68,7 @@ class CloudflareVideoTest extends TestCase
             ->with(self::CLOUDFLARE_URL)
             ->willReturn(self::CLOUDFLARE_UID);
 
-        $result = $this->viewModel->isCloudflareVideo($item);
-
-        $this->assertTrue($result);
+        $this->assertTrue($this->viewModel->isCloudflareVideo($item));
     }
 
     public function testItDoesNotIdentifyAYoutubeExternalVideoAsCloudflare(): void
@@ -99,9 +80,7 @@ class CloudflareVideoTest extends TestCase
             ->with(self::YOUTUBE_URL)
             ->willReturn(null);
 
-        $result = $this->viewModel->isCloudflareVideo($item);
-
-        $this->assertFalse($result);
+        $this->assertFalse($this->viewModel->isCloudflareVideo($item));
     }
 
     public function testItDoesNotIdentifyARegularImageGalleryItemAsCloudflare(): void
@@ -112,9 +91,7 @@ class CloudflareVideoTest extends TestCase
             ->expects($this->never())
             ->method('extract');
 
-        $result = $this->viewModel->isCloudflareVideo($item);
-
-        $this->assertFalse($result);
+        $this->assertFalse($this->viewModel->isCloudflareVideo($item));
     }
 
     public function testItReturnsFalseForIsCloudflareVideoWhenGivenNull(): void
@@ -123,9 +100,7 @@ class CloudflareVideoTest extends TestCase
             ->expects($this->never())
             ->method('extract');
 
-        $result = $this->viewModel->isCloudflareVideo(null);
-
-        $this->assertFalse($result);
+        $this->assertFalse($this->viewModel->isCloudflareVideo(null));
     }
 
     public function testItReturnsTheLiteralStringCloudflareAsProviderForACloudflareVideo(): void
@@ -137,9 +112,7 @@ class CloudflareVideoTest extends TestCase
             ->with(self::CLOUDFLARE_URL)
             ->willReturn(self::CLOUDFLARE_UID);
 
-        $result = $this->viewModel->getProvider($item);
-
-        $this->assertSame('cloudflare', $result);
+        $this->assertSame('cloudflare', $this->viewModel->getProvider($item));
     }
 
     public function testItReturnsNullProviderForANonCloudflareItem(): void
@@ -151,19 +124,15 @@ class CloudflareVideoTest extends TestCase
             ->with(self::YOUTUBE_URL)
             ->willReturn(null);
 
-        $result = $this->viewModel->getProvider($item);
-
-        $this->assertNull($result);
+        $this->assertNull($this->viewModel->getProvider($item));
     }
 
     public function testItReturnsNullProviderWhenGivenNull(): void
     {
-        $result = $this->viewModel->getProvider(null);
-
-        $this->assertNull($result);
+        $this->assertNull($this->viewModel->getProvider(null));
     }
 
-    public function testItReturnsAnIframeEmbedUrlWhenGivenACloudflareGalleryItem(): void
+    public function testItPassesTheOriginalUrlAndPosterToTheEmbedUrlBuilder(): void
     {
         $posterUrl = 'https://example.com/poster.jpg';
         $item = new DataObject([
@@ -178,13 +147,12 @@ class CloudflareVideoTest extends TestCase
             ->willReturn(self::CLOUDFLARE_UID);
 
         $this->embedUrlBuilder
+            ->expects($this->once())
             ->method('build')
-            ->with(self::CLOUDFLARE_UID, $posterUrl)
+            ->with(self::CLOUDFLARE_URL, $posterUrl)
             ->willReturn(self::EMBED_URL);
 
-        $result = $this->viewModel->getEmbedUrl($item);
-
-        $this->assertSame(self::EMBED_URL, $result);
+        $this->assertSame(self::EMBED_URL, $this->viewModel->getEmbedUrl($item));
     }
 
     public function testItReturnsNullEmbedUrlForANonCloudflareItem(): void
@@ -200,9 +168,7 @@ class CloudflareVideoTest extends TestCase
             ->expects($this->never())
             ->method('build');
 
-        $result = $this->viewModel->getEmbedUrl($item);
-
-        $this->assertNull($result);
+        $this->assertNull($this->viewModel->getEmbedUrl($item));
     }
 
     public function testItReturnsNullEmbedUrlWhenGivenNull(): void
@@ -211,20 +177,6 @@ class CloudflareVideoTest extends TestCase
             ->expects($this->never())
             ->method('build');
 
-        $result = $this->viewModel->getEmbedUrl(null);
-
-        $this->assertNull($result);
-    }
-
-    public function testItProxiesGetCustomerCodeThroughModelConfig(): void
-    {
-        $this->config
-            ->expects($this->once())
-            ->method('getCustomerCode')
-            ->willReturn('my-customer-code');
-
-        $result = $this->viewModel->getCustomerCode();
-
-        $this->assertSame('my-customer-code', $result);
+        $this->assertNull($this->viewModel->getEmbedUrl(null));
     }
 }

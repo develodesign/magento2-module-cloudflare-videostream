@@ -11,8 +11,10 @@ class UidExtractor
 {
     private const UID_PATTERN = '/^[0-9a-f]{32}$/';
 
+    private const CUSTOMER_HOST_PATTERN = '/^customer-[^.]+\.cloudflarestream\.com$/';
+
     private const RECOGNISED_HOSTS = [
-        '/^customer-[^.]+\.cloudflarestream\.com$/',
+        self::CUSTOMER_HOST_PATTERN,
         '/^watch\.cloudflarestream\.com$/',
         '/^iframe\.videodelivery\.net$/',
         '/^videodelivery\.net$/',
@@ -21,22 +23,25 @@ class UidExtractor
     private const PLAYABLE_PATH_PATTERN = '/^\/([0-9a-f]{32})(\/(?:iframe|watch|manifest\/.*))?(?:\?.*)?$/';
 
     /**
-     * Extract a Cloudflare Stream UID from a URL or bare UID string.
+     * Parse a Cloudflare Stream input into a structured form.
      *
      * Accepts a full Cloudflare Stream URL or a bare 32-character lowercase
-     * hexadecimal UID. Returns the UID string or null for unrecognised input.
+     * hexadecimal UID. Returns ['uid' => string, 'customerHost' => ?string] or
+     * null for unrecognised input. customerHost is the original
+     * customer-<code>.cloudflarestream.com host when present in the input,
+     * otherwise null.
      *
      * @param string|null $input Full URL or bare 32-hex-char UID.
-     * @return string|null The 32-character UID, or null if not recognised.
+     * @return array{uid: string, customerHost: ?string}|null
      */
-    public function extract(?string $input): ?string
+    public function parse(?string $input): ?array
     {
         if ($input === null || $input === '') {
             return null;
         }
 
         if (preg_match(self::UID_PATTERN, $input)) {
-            return $input;
+            return ['uid' => $input, 'customerHost' => null];
         }
 
         // phpcs:ignore Magento2.Functions.DiscouragedFunction
@@ -54,18 +59,30 @@ class UidExtractor
         $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
         $pathWithQuery = rtrim($path, '/') . $query;
 
-        if (preg_match(self::PLAYABLE_PATH_PATTERN, $pathWithQuery, $matches)) {
-            return $matches[1];
+        if (!preg_match(self::PLAYABLE_PATH_PATTERN, $pathWithQuery, $matches)) {
+            return null;
         }
 
-        return null;
+        return [
+            'uid' => $matches[1],
+            'customerHost' => preg_match(self::CUSTOMER_HOST_PATTERN, $host) ? $host : null,
+        ];
+    }
+
+    /**
+     * Extract a Cloudflare Stream UID from a URL or bare UID string.
+     *
+     * @param string|null $input Full URL or bare 32-hex-char UID.
+     * @return string|null The 32-character UID, or null if not recognised.
+     */
+    public function extract(?string $input): ?string
+    {
+        $parsed = $this->parse($input);
+        return $parsed === null ? null : $parsed['uid'];
     }
 
     /**
      * Check whether the given hostname is a recognised Cloudflare video host.
-     *
-     * @param string $host Hostname extracted from the URL.
-     * @return bool True when the host matches a known Cloudflare video domain.
      */
     private function isRecognisedHost(string $host): bool
     {

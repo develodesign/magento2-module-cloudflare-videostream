@@ -41,40 +41,12 @@ class ReadmeTest extends TestCase
         );
     }
 
-    public function testItDocumentsTheDeveloCloudflareVideoCustomerCodeConfigurationPath(): void
+    public function testItStatesThatNoSeparateConfigurationIsRequired(): void
     {
-        $this->assertStringContainsString(
-            'develo_cloudflare_video',
+        $this->assertMatchesRegularExpression(
+            '/no\s+(?:separate\s+)?configuration/i',
             $this->readmeContent,
-            'README must reference the develo_cloudflare_video config path'
-        );
-        $this->assertStringContainsString(
-            'Customer Code',
-            $this->readmeContent,
-            'README must reference the Customer Code configuration field'
-        );
-    }
-
-    public function testItStatesTheCustomerCodeIsAPublicIdentifierRenderedIntoPdpHtml(): void
-    {
-        $this->assertStringContainsString(
-            'public identifier',
-            $this->readmeContent,
-            'README must state that the customer code is a public identifier'
-        );
-        $this->assertStringContainsString(
-            'PDP',
-            $this->readmeContent,
-            'README must mention PDP HTML in the context of the customer code'
-        );
-    }
-
-    public function testItWarnsThatChangingTheCustomerCodeRequiresCacheFlushFullPage(): void
-    {
-        $this->assertStringContainsString(
-            'cache:flush full_page',
-            $this->readmeContent,
-            'README must warn that changing the customer code requires cache:flush full_page'
+            'README must state that no separate configuration is required'
         );
     }
 

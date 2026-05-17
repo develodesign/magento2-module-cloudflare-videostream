@@ -240,7 +240,6 @@ $productName = $block->getProduct()->getName();
     </div>
 </section>
 <script>
-    const cloudflareCustomerCode = '<?= $escaper->escapeJs($cloudflareVideo->getCustomerCode()) ?>';
     function initGallery () {
         let touchXDown, touchYDown;
 
@@ -453,10 +452,13 @@ $productName = $block->getProduct()->getName();
             initCloudflareVideo(videoData) {
                 const container = document.getElementById("cloudflare-player");
                 if (!container || !videoData.id) return;
-                const poster = this.images[this.active] && this.images[this.active].img;
+                const activeImage = this.images[this.active] || {};
+                const poster = activeImage.img;
                 const posterQ = poster ? '?poster=' + encodeURIComponent(poster) : '';
-                const base = cloudflareCustomerCode
-                    ? 'https://customer-' + cloudflareCustomerCode + '.cloudflarestream.com/' + videoData.id + '/iframe'
+                const sourceUrl = activeImage.videoUrl || '';
+                const customerHostMatch = sourceUrl.match(/^https?:\/\/(customer-[^.\/]+\.cloudflarestream\.com)\//i);
+                const base = customerHostMatch
+                    ? 'https://' + customerHostMatch[1] + '/' + videoData.id + '/iframe'
                     : 'https://iframe.videodelivery.net/' + videoData.id;
                 container.innerHTML =
                     '<iframe src="' + base + posterQ + '"' +
