@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Develo Design. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Develo_CloudflareVideo" setup_version="1.0.0">
+        <sequence>
+            <module name="Hyva_Theme"/>
+            <module name="Hyva_CompatModuleFallback"/>
+            <module name="Magento_Catalog"/>
+            <module name="Magento_ProductVideo"/>
+        </sequence>
+    </module>
+</config>
